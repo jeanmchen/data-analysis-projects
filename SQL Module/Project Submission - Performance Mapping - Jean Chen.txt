@@ -1,0 +1,168 @@
+/*
+Data Acquisition and Manipulation using SQL
+Final Project: Project Submission
+Jean Chen
+*/
+
+-- ACTION 1:
+
+create database employee;
+use employee;
+
+-- ACTION 2: See PDF file
+
+-- ACTION 3:
+
+select EMP_ID, FIRST_NAME, LAST_NAME, GENDER, DEPT from EMP_RECORD_TABLE;
+
+-- ACTION 4: 
+
+select EMP_ID, FIRST_NAME, LAST_NAME, GENDER, DEPT, EMP_RATING, 
+        case 
+            when EMP_RATING < 2 then 'less than two'
+            when EMP_RATING <= 4 then 'between two and four'
+            else 'greater than four'
+        end as Rating
+    from EMP_RECORD_TABLE;
+
+-- ACTION 5:
+
+select concat(FIRST_NAME, ' ', LAST_NAME) as NAME 
+    from EMP_RECORD_TABLE
+    where DEPT = 'Finance';
+
+-- ACTION 6:
+
+select M.FIRST_NAME 'Manager Name', M.ROLE, count(E.FIRST_NAME) 'Number of Employees Reporting'
+    from EMP_RECORD_TABLE E join EMP_RECORD_TABLE M
+    on E.MANAGER_ID = M.EMP_ID
+    group by M.FIRST_NAME, M.ROLE;
+
+-- ACTION 7:
+
+select * from EMP_RECORD_TABLE where DEPT = 'Healthcare'
+    union select * from EMP_RECORD_TABLE where DEPT = 'Finance';
+
+-- ACTION 8:
+
+select EMP_ID, FIRST_NAME, LAST_NAME, ROLE, DEPT, EMP_RATING, max(EMP_RATING)
+    over(partition by DEPT) 'Maximum Department Rating' 
+    from EMP_RECORD_TABLE;
+    
+-- ACTION 9:
+
+select max(SALARY), min(SALARY), ROLE 
+    from EMP_RECORD_TABLE 
+    group by ROLE;
+
+-- ACTION 10:
+
+select *, rank() over(order by EXP desc) RankByExperience from EMP_RECORD_TABLE;
+
+-- ACTION 11:
+
+create view EmployeesSalaryAbove6k as
+    select * from EMP_RECORD_TABLE where SALARY > 6000;
+select * from EmployeesSalaryAbove6k;
+
+-- ACTION 12:
+
+select * from EMP_RECORD_TABLE where EMP_ID in 
+    (select EMP_ID from EMP_RECORD_TABLE where EXP > 10);
+
+-- ACTION 13:
+
+-- contents of stored procedure:
+
+    USE `employee`;
+    DROP procedure IF EXISTS `YEARS_EXPERIENCE`;
+
+    DELIMITER $$
+    USE `employee`$$
+    CREATE PROCEDURE `YEARS_EXPERIENCE` (yearsWanted int)
+    BEGIN
+        select EMP_ID, FIRST_NAME, LAST_NAME, ROLE, DEPT, EMP_RATING, EXP
+            from EMP_RECORD_TABLE 
+            where EXP >= yearsWanted;
+    END$$
+
+    DELIMITER ;
+
+-- usage of stored procedure:
+
+call YEARS_EXPERIENCE (3);
+
+-- ACTION 14:
+
+-- contents of function:
+
+    DELIMITER $$
+    CREATE DEFINER=`root`@`localhost` FUNCTION `Emp_Audit`(eid char(4)) RETURNS varchar(50) CHARSET utf8mb4
+        DETERMINISTIC
+    BEGIN
+        declare ex int;
+        declare vRole varchar(100);
+        declare flag varchar(10);
+        select exp, role into ex, vRole from data_science_team where emp_id = eid;
+            
+            if ex > 12 and ex <= 16 then
+                if vRole = 'Manager' then
+                    set flag = 'Yes';
+                else
+                    set flag = 'Not';
+                end if;
+                
+            elseif ex > 10 and ex <= 12 then
+                if vRole = 'Lead Data Scientist' then
+                    set flag = 'Yes';
+                else
+                    set flag = 'Not';
+                end if;
+
+            elseif ex > 5 and ex <= 10 then
+                if vRole = 'Senior Data Scientist' then
+                    set flag = 'Yes';
+                else
+                    set flag = 'Not';
+                end if;  
+                
+            elseif ex > 2 and ex <= 5 then
+                if vRole = 'Associate Data Scientist' then
+                    set flag = 'Yes';
+                else
+                    set flag = 'Not';
+                end if;              
+                
+            elseif ex <= 2 then
+                if vRole = 'Junior Data Scientist' then
+                    set flag = 'Yes';
+                else
+                    set flag = 'Not';
+                end if;              
+        end if;
+    RETURN flag;
+    END$$
+
+    DELIMITER ;
+    ;
+
+-- usage of function:
+
+select *, emp_audit(emp_id) from data_science_team;
+
+-- ACTION 15: See PDF file
+
+select * from EMP_RECORD_TABLE where FIRST_NAME = 'Eric';
+create index indexFirstname on EMP_RECORD_TABLE(FIRST_NAME);
+select * from EMP_RECORD_TABLE where FIRST_NAME = 'Eric';
+
+-- ACTION 16:
+
+select *, SALARY * (0.05 * EMP_RATING) as Bonus from EMP_RECORD_TABLE;
+
+-- ACTION 17:
+
+select CONTINENT, COUNTRY, concat('$', round(avg(SALARY))) as 'Average Salary' 
+    from EMP_RECORD_TABLE
+    group by CONTINENT, COUNTRY 
+    with rollup;
